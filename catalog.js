@@ -10,7 +10,7 @@ let displayCount = 20;
 
 const catalogContainer = document.getElementById('dynamicCatalog');
 const searchInput = document.getElementById('catalogSearch');
-const filterButtons = document.querySelectorAll('.filter-pill');
+const filterTabs = document.querySelectorAll('.filter-tab');
 
 // Gentle pastel palette per direction
 function getAuraGradient(direction, index) {
@@ -72,13 +72,15 @@ function renderCatalog() {
         const aura = (p.aura || "").toLowerCase();
         const notes = (p.notes || "").toLowerCase();
         const script = (p.script || "").toLowerCase();
+        const type = (p.type || "").toLowerCase();
         
         const matchesSearch = !query ||
                               name.includes(query) || 
                               brand.includes(query) || 
                               aura.includes(query) || 
                               notes.includes(query) ||
-                              script.includes(query);
+                              script.includes(query) ||
+                              type.includes(query);
 
         return matchesFilter && matchesSearch;
     });
@@ -122,24 +124,39 @@ function createPerfumeCard(p, index) {
     const displayName = p.name || p.brand || 'Коллекция';
     const displayBrand = p.name ? p.brand : 'Exclusive Collection';
 
-    // Direction icon mapping
+    // Direction mapping
     const dirIcon = p.direction === 'Мужской' ? 'fa-mars' : 
-                    p.direction === 'Женский' ? 'fa-venus' : 'fa-venus-mars';
+                    p.direction === 'Женский' ? 'fa-venus' : 'fa-unisex';
+    const dirClass = p.direction === 'Мужской' ? 'male' : 
+                     p.direction === 'Женский' ? 'female' : 'unisex';
+
+    // Durability stars
+    const durability = p.durability || 2;
+    let starsHtml = '';
+    for(let i=1; i<=3; i++) {
+        starsHtml += `<i class="fa-solid fa-circle ${i <= durability ? 'star-filled' : 'star-empty'}"></i>`;
+    }
 
     card.innerHTML = `
         <div class="product-img-wrap">
             <div class="product-img" style="background: ${bgGradient};">
                 <i class="fa-solid fa-gem product-gem-icon"></i>
             </div>
-            <span class="product-tag"><i class="fa-solid ${dirIcon}"></i> ${p.direction}</span>
+            ${p.type ? `<span class="family-badge">${p.type}</span>` : ''}
+            <span class="product-tag tag-${dirClass}"><i class="fa-solid ${dirIcon}"></i> ${p.direction}</span>
         </div>
         <div class="product-body">
             <h3 class="product-name">${displayName}</h3>
             <p class="product-subtitle">${displayBrand}</p>
+            
+            <div class="durability-wrap">
+                <span class="durability-label">Стойкость:</span>
+                <div class="stars">${starsHtml}</div>
+            </div>
+
             <div class="notes-list">
                 <div class="note-row">
-                    <span class="note-label">Аура</span>
-                    <span class="note-value aura-value">${p.aura || 'Прозрачная'}</span>
+                    <span class="note-value aura-value" style="font-weight: 500;">${p.aura || 'Прозрачная аура'}</span>
                 </div>
                 <div class="note-row">
                     <span class="note-label">Ноты</span>
@@ -147,9 +164,9 @@ function createPerfumeCard(p, index) {
                 </div>
             </div>
             <div class="product-price-row">
-                <span class="product-price">от 4 900 ₽</span>
+                <span class="product-price">4 900 ₽</span>
                 <button class="product-btn" onclick="openProductModal(${allPerfumes.indexOf(p)})">
-                    Детали <i class="fa-solid fa-arrow-right"></i>
+                    Выбрать <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem; margin-left: 4px;"></i>
                 </button>
             </div>
         </div>
@@ -166,9 +183,9 @@ function setupEventListeners() {
     });
 
     // Filters
-    filterButtons.forEach(btn => {
+    filterTabs.forEach(btn => {
         btn.addEventListener('click', () => {
-            filterButtons.forEach(b => b.classList.remove('active'));
+            filterTabs.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentFilter = btn.dataset.category;
             displayCount = 20; // Reset pagination on filter change
@@ -350,7 +367,21 @@ function openProductModal(index) {
     document.getElementById('modalPronunciation').textContent = p.aura || '—';
     document.getElementById('modalDirectionVal').textContent = p.direction || '—';
     document.getElementById('modalTop').textContent = p.notes || '—';
-    document.getElementById('modalDesc').textContent = p.script || 'Описание аромата скоро появится...';
+    
+    // Type and Durability in Modal
+    const typeRow = `<div class="info-row"><strong>Семейство:</strong> <span>${p.type || '—'}</span></div>`;
+    const durValue = p.durability || 2;
+    let stars = '';
+    for(let i=1; i<=3; i++) stars += i <= durValue ? '★' : '☆';
+    const durRow = `<div class="info-row"><strong>Стойкость:</strong> <span style="color:#facc15">${stars}</span></div>`;
+    
+    document.getElementById('modalDesc').innerHTML = `
+        ${typeRow}
+        ${durRow}
+        <div style="margin-top: 20px; color: var(--text-secondary); line-height: 1.8;">
+            ${p.script || 'Описание аромата скоро появится...'}
+        </div>
+    `;
     
     // Modal image with gradient
     const bgGradient = getAuraGradient(p.direction, index);
